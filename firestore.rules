@@ -3,11 +3,26 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only authenticated users can access the profiles collection.
-    // Users can only read or write their own profile document.
+
+    // Users can only read/write their own profile.
     match /profiles/{userId} {
-      allow read, create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rules for swap requests
+    match /requests/{requestId} {
+      // Anyone authenticated can read any request for now to simplify client-side joins.
+      // In a production app, you might restrict this further.
+      allow read: if request.auth != null;
+
+      // Only the requester can create a request.
+      // They must be authenticated and the requesterId must match their UID.
+      allow create: if request.auth != null && request.resource.data.requesterId == request.auth.uid;
+
+      // Only the requester or the requested user can update a request.
+      // The status can only be changed, not other fields.
+      allow update: if request.auth != null && (request.auth.uid == resource.data.requesterId || request.auth.uid == resource.data.requestedId)
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
     }
   }
 }

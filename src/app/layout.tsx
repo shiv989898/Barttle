@@ -3,6 +3,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/context/auth-context';
+import { AppShell } from '@/components/layout/app-shell';
 
 export const metadata: Metadata = {
   title: 'Barttle',
@@ -23,7 +24,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          {children}
+            <AppShell>
+                {children}
+            </AppShell>
         </AuthProvider>
         <Toaster />
       </body>

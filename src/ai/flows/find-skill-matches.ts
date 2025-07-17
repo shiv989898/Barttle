@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -11,6 +12,8 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import {getUsers, type UserProfile} from '@/lib/users';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 const FindSkillMatchesInputSchema = z.object({
   skillsOffered: z.array(z.string()).describe("A list of skills the current user offers."),
@@ -20,10 +23,12 @@ const FindSkillMatchesInputSchema = z.object({
 export type FindSkillMatchesInput = z.infer<typeof FindSkillMatchesInputSchema>;
 
 const MatchedUserSchema = z.object({
+  uid: z.string(),
   name: z.string(),
   bio: z.string(),
   skillsOffered: z.array(z.string()),
   skillsDesired: z.array(z.string()),
+  profilePicture: z.string().optional(),
   avatar: z.string().describe("A data URI of a generated avatar for the user. Expected format: 'data:image/png;base64,<encoded_data>'."),
   aiHint: z.string().describe("A 2-word hint for the AI to generate an avatar. e.g. 'man smiling', 'woman glasses'"),
 });
@@ -34,15 +39,30 @@ const FindSkillMatchesOutputSchema = z.object({
 export type FindSkillMatchesOutput = z.infer<typeof FindSkillMatchesOutputSchema>;
 
 
-// Tool to get all users from our "database"
 const getAllUsersTool = ai.defineTool(
     {
         name: 'getAllUsers',
         description: 'Get a list of all available users in the system to find matches.',
-        outputSchema: z.array(z.custom<UserProfile>()),
+        outputSchema: z.array(z.custom<UserProfile & {uid: string}>()),
     },
     async () => {
-        return getUsers();
+        // Now fetching from Firestore
+        const profilesSnapshot = await getDocs(collection(db, "profiles"));
+        const users: (UserProfile & {uid: string})[] = [];
+        profilesSnapshot.forEach(doc => {
+            const data = doc.data();
+            users.push({
+                uid: doc.id,
+                name: data.name || 'Anonymous',
+                bio: data.shortBio || '',
+                skillsOffered: data.skillsOffered || [],
+                skillsDesired: data.skillsDesired || [],
+                profilePicture: data.profilePicture || '',
+                // aiHint is not in Firestore, so we provide a default
+                aiHint: "person smiling",
+            });
+        });
+        return users;
     }
 );
 
@@ -63,7 +83,7 @@ You will be provided with a list of all users. You must filter this list to find
 Do not include the current user in the matches.
 For each match, you MUST generate a unique avatar image based on their name and a simple aiHint.
 Do NOT use the same aiHint for multiple users. Be creative. Example aiHints: "man smiling", "woman with glasses", "person with curly hair".
-Return up to 3 best matches.`,
+Return up to 6 best matches.`,
     tools: [getAllUsersTool]
   },
   async (input) => {
@@ -73,33 +93,33 @@ Return up to 3 best matches.`,
       User offers: ${input.skillsOffered.join(', ')}
       User wants: ${input.skillsDesired.join(', ')}`,
       tools: [getAllUsersTool],
-      model: 'googleai/gemini-2.0-flash'
+      model: 'googleai/gemini-pro'
     });
     
-    const toolCalls = llmResponse.toolCalls();
-    if (!toolCalls || toolCalls.length === 0) {
-      return { matches: [] };
+    // We expect the LLM to call our tool to get the user list
+    const toolResponse = await llmResponse.toolRequest()?.runInContext();
+    if (!toolResponse) {
+       return { matches: [] };
     }
-    
-    // In a real app you might have multiple tool calls, but we only have one.
-    const allUsers = await getAllUsersTool();
+
+    const { output: allUsers } = toolResponse[0];
 
     // Basic matching logic
     const matches = allUsers
-        .filter(user => user.name !== input.currentUserName) // Exclude current user
-        .filter(user => {
-            const userOffersWhatIWant = user.skillsOffered.some(skill => input.skillsDesired.includes(skill));
-            const userWantsWhatIOffer = user.skillsDesired.some(skill => input.skillsOffered.includes(skill));
+        .filter((user: any) => user.name !== input.currentUserName) // Exclude current user
+        .filter((user: any) => {
+            const userOffersWhatIWant = user.skillsOffered.some((skill: string) => input.skillsDesired.includes(skill));
+            const userWantsWhatIOffer = user.skillsDesired.some((skill: string) => input.skillsOffered.includes(skill));
             return userOffersWhatIWant && userWantsWhatIOffer;
         })
-        .slice(0, 3); // Limit to 3 matches
+        .slice(0, 6); // Limit to 6 matches
 
     // Generate avatars for the matched users in parallel
     const matchesWithAvatars = await Promise.all(
-        matches.map(async (user) => {
+        matches.map(async (user: any) => {
             const { media } = await ai.generate({
                 model: 'googleai/gemini-2.0-flash-preview-image-generation',
-                prompt: `A profile picture of a person named ${user.name}. ${user.aiHint}.`,
+                prompt: `A profile picture of a person named ${user.name}. ${user.aiHint || 'person smiling'}.`,
                 config: {
                     responseModalities: ['IMAGE'],
                 },

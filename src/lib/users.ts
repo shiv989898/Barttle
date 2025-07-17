@@ -1,12 +1,14 @@
-// This file mocks a database of users for the skill-swapping platform.
-// In a real application, this data would come from a database.
 
+// This file mocks a database of users for the skill-swapping platform.
+// In a real application, this data would come from a database like Firestore.
+// The primary source of truth is now Firestore, this can be used for reference or seeding.
 export type UserProfile = {
   name: string;
   aiHint: string;
   bio: string;
   skillsOffered: string[];
   skillsDesired: string[];
+  profilePicture?: string;
 };
 
 const users: UserProfile[] = [
@@ -61,6 +63,7 @@ const users: UserProfile[] = [
   },
 ];
 
+// This function is now deprecated in favor of fetching directly from Firestore.
 export function getUsers(): UserProfile[] {
   // In a real app, you'd fetch this from a database.
   return users;
