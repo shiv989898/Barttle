@@ -1,7 +1,10 @@
+
 'use server';
 
 import { generateUserBio, type GenerateUserBioInput } from '@/ai/flows/generate-user-bio';
 import { findSkillMatches, type FindSkillMatchesInput } from '@/ai/flows/find-skill-matches';
+import { generatePortfolioImage } from '@/ai/flows/generate-portfolio-image';
+import type { GeneratePortfolioImageInput } from '@/lib/types';
 
 export async function handleGenerateBio(input: GenerateUserBioInput) {
   try {
@@ -21,5 +24,15 @@ export async function handleFindMatches(input: FindSkillMatchesInput) {
     } catch (error) {
         console.error('Error finding matches:', error);
         return { success: false, error: 'An unexpected error occurred while finding matches.' };
+    }
+}
+
+export async function handleGenerateImage(input: GeneratePortfolioImageInput) {
+    try {
+        const result = await generatePortfolioImage(input);
+        return { success: true, imageUrl: result.imageUrl };
+    } catch (error) {
+        console.error('Error generating image:', error);
+        return { success: false, error: 'An unexpected error occurred while generating the image.' };
     }
 }
