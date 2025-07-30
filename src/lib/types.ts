@@ -4,7 +4,7 @@ import type { Timestamp } from "firebase/firestore";
 export type Profile = {
   uid: string;
   name: string;
-  profilePicture: string; // Stored as a data URL (base64)
+  profilePicture: string; // Stored as a URL from Google
   shortBio: string;
   skillsOffered: string[];
   skillsDesired: string[];

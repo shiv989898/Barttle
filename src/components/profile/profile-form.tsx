@@ -1,9 +1,10 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Loader2, Sparkles, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,10 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/use-profile";
@@ -50,7 +49,6 @@ export function ProfileForm() {
   const { profile, updateProfile, isLoaded } = useProfile();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -77,18 +75,6 @@ export function ProfileForm() {
       description: "Your profile has been updated successfully.",
     });
   }
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        form.setValue("profilePicture", base64String, { shouldValidate: true, shouldDirty: true });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const generateBio = async () => {
     setIsGenerating(true);
@@ -149,39 +135,20 @@ export function ProfileForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 space-y-8">
-            <FormField
-              control={form.control}
-              name="profilePicture"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-6">
-                    <Avatar 
-                        className="h-24 w-24 cursor-pointer border-2 border-dashed border-muted-foreground/50 hover:border-primary transition-colors"
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                      <AvatarImage src={field.value} alt="Profile picture" className="object-cover" />
-                      <AvatarFallback className="bg-secondary">
-                        <User className="h-10 w-10 text-muted-foreground" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-1">
-                        <FormLabel>Profile Picture</FormLabel>
-                        <p className="text-sm text-muted-foreground">Click the avatar to upload an image. <br />PNG, JPG, GIF up to 10MB.</p>
-                        <FormControl>
-                            <Input
-                                type="file"
-                                accept="image/png, image/jpeg, image/gif"
-                                ref={fileInputRef}
-                                className="hidden"
-                                onChange={handleFileChange}
-                            />
-                        </FormControl>
-                    </div>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="flex items-center gap-6">
+                <Avatar 
+                    className="h-24 w-24 border-2"
+                >
+                  <AvatarImage src={profile?.profilePicture} alt="Profile picture" className="object-cover" />
+                  <AvatarFallback className="bg-secondary">
+                    <User className="h-10 w-10 text-muted-foreground" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                    <p className="text-lg font-semibold">Profile Picture</p>
+                    <p className="text-sm text-muted-foreground">Your profile picture is automatically synced <br/> from your Google account.</p>
+                </div>
+              </div>
 
             <FormField
               control={form.control}
