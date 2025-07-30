@@ -1,4 +1,6 @@
 
+import type { Timestamp } from "firebase/firestore";
+
 export type Profile = {
   uid: string;
   name: string;
@@ -19,6 +21,6 @@ export type SwapRequest = {
   skillsOffered: string[];
   skillsDesired: string[];
   status: SwapRequestStatus;
-  createdAt: number; // as timestamp
-  updatedAt: number; // as timestamp
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 };

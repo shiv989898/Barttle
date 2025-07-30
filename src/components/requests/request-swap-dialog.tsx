@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { useRequests } from "@/hooks/use-requests";
 import type { Profile } from "@/lib/types";
@@ -13,10 +13,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "../ui/badge";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
@@ -24,10 +22,11 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 interface RequestSwapDialogProps {
   currentUser: Profile;
   targetUser: Profile;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
-export function RequestSwapDialog({ currentUser, targetUser }: RequestSwapDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function RequestSwapDialog({ currentUser, targetUser, isOpen, setIsOpen }: RequestSwapDialogProps) {
   const [selectedSkillsOffered, setSelectedSkillsOffered] = useState<string[]>([]);
   const [selectedSkillsDesired, setSelectedSkillsDesired] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -48,23 +47,24 @@ export function RequestSwapDialog({ currentUser, targetUser }: RequestSwapDialog
     await createRequest(targetUser, selectedSkillsOffered, selectedSkillsDesired, currentUser);
     setIsSubmitting(false);
     setIsOpen(false);
-    // Reset state for next time
-    setSelectedSkillsOffered([]);
-    setSelectedSkillsDesired([]);
   };
   
+  // Reset state when the dialog closes or the target user changes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedSkillsOffered([]);
+      setSelectedSkillsDesired([]);
+      setError(null);
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
   // Find the intersection of skills
-  const skillsUserCanOffer = currentUser.skillsOffered.filter(skill => targetUser.skillsDesired.includes(skill));
-  const skillsUserCanReceive = targetUser.skillsOffered.filter(skill => currentUser.skillsDesired.includes(skill));
+  const skillsUserCanOffer = currentUser.skillsOffered?.filter(skill => targetUser.skillsDesired?.includes(skill)) || [];
+  const skillsUserCanReceive = targetUser.skillsOffered?.filter(skill => currentUser.skillsDesired?.includes(skill)) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="flex-1">
-          <ArrowRightLeft className="mr-2 h-4 w-4" />
-          Request Swap
-        </Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
           <DialogTitle>Request a Skill Swap with {targetUser.name}</DialogTitle>

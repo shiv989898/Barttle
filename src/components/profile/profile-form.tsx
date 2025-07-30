@@ -145,16 +145,10 @@ export function ProfileForm() {
   }
 
   return (
-    <Card className="shadow-lg border-border/60">
-      <CardHeader>
-        <CardTitle>Your Profile</CardTitle>
-        <CardDescription>
-          This information will be visible to others to help find the perfect skill swap.
-        </CardDescription>
-      </CardHeader>
+    <Card>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-8">
+          <CardContent className="p-6 space-y-8">
             <FormField
               control={form.control}
               name="profilePicture"
@@ -275,7 +269,7 @@ export function ProfileForm() {
             />
 
           </CardContent>
-          <CardFooter>
+          <CardFooter className="border-t px-6 py-4">
             <Button type="submit" disabled={!form.formState.isDirty}>
               Save Changes
             </Button>

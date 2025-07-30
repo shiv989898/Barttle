@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {getUsers, type UserProfile} from '@/lib/users';
+import { type Profile } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
@@ -38,28 +38,22 @@ const FindSkillMatchesOutputSchema = z.object({
 });
 export type FindSkillMatchesOutput = z.infer<typeof FindSkillMatchesOutputSchema>;
 
+type UserProfileWithId = Profile & { uid: string };
 
 const getAllUsersTool = ai.defineTool(
     {
         name: 'getAllUsers',
         description: 'Get a list of all available users in the system to find matches.',
-        outputSchema: z.array(z.custom<UserProfile & {uid: string}>()),
+        outputSchema: z.array(z.custom<UserProfileWithId>()),
     },
     async () => {
-        // Now fetching from Firestore
         const profilesSnapshot = await getDocs(collection(db, "profiles"));
-        const users: (UserProfile & {uid: string})[] = [];
+        const users: UserProfileWithId[] = [];
         profilesSnapshot.forEach(doc => {
-            const data = doc.data();
+            const data = doc.data() as Omit<Profile, 'uid'>;
             users.push({
                 uid: doc.id,
-                name: data.name || 'Anonymous',
-                bio: data.shortBio || '',
-                skillsOffered: data.skillsOffered || [],
-                skillsDesired: data.skillsDesired || [],
-                profilePicture: data.profilePicture || '',
-                // aiHint is not in Firestore, so we provide a default
-                aiHint: "person smiling",
+                ...data
             });
         });
         return users;
@@ -78,60 +72,87 @@ const findSkillMatchesFlow = ai.defineFlow(
     outputSchema: FindSkillMatchesOutputSchema,
     system: `You are a skill-matching expert for a skill-swapping platform.
 Your goal is to find the best potential matches for the current user based on the skills they offer and the skills they desire.
-A good match is someone who desires skills the user offers, and offers skills the user desires.
-You will be provided with a list of all users. You must filter this list to find the best matches.
-Do not include the current user in the matches.
-For each match, you MUST generate a unique avatar image based on their name and a simple aiHint.
-Do NOT use the same aiHint for multiple users. Be creative. Example aiHints: "man smiling", "woman with glasses", "person with curly hair".
-Return up to 6 best matches.`,
+A good match is someone who desires skills the user offers, AND offers skills the user desires.
+You will be provided with a list of all users via a tool. You must call this tool to get the data.
+From the list of all users, filter out the current user.
+Then, identify up to 6 of the best matches. A better match is one where there are more overlapping skills between what one user offers and another desires.
+For each final match, you MUST generate a unique avatar image based on their name and a simple, creative aiHint.
+Do NOT use the same aiHint for multiple users. Example aiHints: "man smiling", "woman with glasses", "person with curly hair", "artist with beret".
+Return a list of these matched users, including their generated avatar.`,
     tools: [getAllUsersTool]
   },
   async (input) => {
 
     const llmResponse = await ai.generate({
-      prompt: `Find skill matches for ${input.currentUserName}.
-      User offers: ${input.skillsOffered.join(', ')}
-      User wants: ${input.skillsDesired.join(', ')}`,
+      prompt: `Find skill matches for a user named ${input.currentUserName}.
+      This user offers: ${input.skillsOffered.join(', ')}
+      This user wants: ${input.skillsDesired.join(', ')}`,
       tools: [getAllUsersTool],
-      model: 'googleai/gemini-pro'
+      model: 'googleai/gemini-pro',
+      output: {
+        schema: FindSkillMatchesOutputSchema
+      }
     });
-    
-    // We expect the LLM to call our tool to get the user list
+
     const toolResponse = await llmResponse.toolRequest()?.runInContext();
     if (!toolResponse) {
-       return { matches: [] };
+       // If the model doesn't call the tool, maybe it can answer directly?
+       // Or in this case, it's more likely an issue, so we check the output.
+       const output = llmResponse.output;
+       if (output?.matches) {
+           return output;
+       }
+       throw new Error("The model did not call the user tool as expected.");
     }
 
     const { output: allUsers } = toolResponse[0];
 
-    // Basic matching logic
-    const matches = allUsers
-        .filter((user: any) => user.name !== input.currentUserName) // Exclude current user
-        .filter((user: any) => {
-            const userOffersWhatIWant = user.skillsOffered.some((skill: string) => input.skillsDesired.includes(skill));
-            const userWantsWhatIOffer = user.skillsDesired.some((skill: string) => input.skillsOffered.includes(skill));
-            return userOffersWhatIWant && userWantsWhatIOffer;
-        })
-        .slice(0, 6); // Limit to 6 matches
+    // After getting the users, we need to pass this info BACK to the model to reason over it.
+    // The prompt already instructed it on how to match, now we provide the data.
+    const finalResponse = await ai.generate({
+         prompt: [
+            {
+                text: `Here is the list of all users. Now, fulfill the original request to find the best matches for ${input.currentUserName} and generate their avatars.`,
+            },
+            {
+                data: { allUsers }
+            }
+        ],
+        output: { schema: FindSkillMatchesOutputSchema }
+    });
+
+    const matches = finalResponse.output?.matches || [];
+    if (matches.length === 0) {
+        return { matches: [] };
+    }
 
     // Generate avatars for the matched users in parallel
     const matchesWithAvatars = await Promise.all(
-        matches.map(async (user: any) => {
-            const { media } = await ai.generate({
-                model: 'googleai/gemini-2.0-flash-preview-image-generation',
-                prompt: `A profile picture of a person named ${user.name}. ${user.aiHint || 'person smiling'}.`,
-                config: {
-                    responseModalities: ['IMAGE'],
-                },
-            });
+        matches.map(async (user) => {
+            try {
+                const { media } = await ai.generate({
+                    model: 'googleai/gemini-2.0-flash-preview-image-generation',
+                    prompt: `A profile picture of a person named ${user.name}. ${user.aiHint || 'person smiling'}.`,
+                    config: {
+                        responseModalities: ['IMAGE'],
+                    },
+                });
 
-            return {
-                ...user,
-                avatar: media.url,
-            };
+                return {
+                    ...user,
+                    avatar: media.url,
+                };
+            } catch (e) {
+                console.error(`Failed to generate avatar for ${user.name}`, e);
+                // Return user without avatar if generation fails
+                return {
+                    ...user,
+                    avatar: `https://placehold.co/128x128.png`, // Fallback
+                };
+            }
         })
     );
-
+    
     return { matches: matchesWithAvatars };
   }
 );
