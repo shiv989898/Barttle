@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 
 import { useProfile } from "@/hooks/use-profile";
@@ -21,7 +20,7 @@ const PortfolioCardSkeleton = () => (
             <Skeleton className="h-4 w-1/2" />
         </CardHeader>
         <CardContent>
-            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-20 w-full" />
         </CardContent>
         <CardFooter className="justify-end gap-2">
             <Skeleton className="h-8 w-8" />
@@ -68,16 +67,6 @@ export function Portfolio() {
                             <CardTitle>{item.title}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow space-y-4">
-                             <div className="aspect-video w-full overflow-hidden rounded-md border">
-                                <Image
-                                    src={item.imageUrl}
-                                    alt={item.title}
-                                    width={400}
-                                    height={225}
-                                    className="object-cover w-full h-full"
-                                    data-ai-hint={item.aiHint}
-                                />
-                            </div>
                             <CardDescription className="line-clamp-3">{item.description}</CardDescription>
                         </CardContent>
                         <CardFooter className="justify-end gap-2">

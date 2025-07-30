@@ -84,11 +84,9 @@ export function useRequests() {
         requestedId: targetUser.uid,
         requesterProfile: {
           name: currentUserProfile.name,
-          profilePicture: currentUserProfile.profilePicture || "",
         },
         requestedProfile: {
           name: targetUser.name,
-          profilePicture: targetUser.profilePicture || "",
         },
         skillsOffered,
         skillsDesired,

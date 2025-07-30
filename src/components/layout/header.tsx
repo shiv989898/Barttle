@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -18,7 +19,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowRightLeft, Bell, Home, LogOut, Menu, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -89,7 +90,6 @@ export function Header() {
             className="overflow-hidden rounded-full"
           >
             <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.photoURL || ''} alt="User avatar" />
                 <AvatarFallback>{user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
           </Button>

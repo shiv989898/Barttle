@@ -28,9 +28,6 @@ const MatchedUserSchema = z.object({
   bio: z.string(),
   skillsOffered: z.array(z.string()),
   skillsDesired: z.array(z.string()),
-  profilePicture: z.string().optional(),
-  avatar: z.string().describe("A data URI of a generated avatar for the user. Expected format: 'data:image/png;base64,<encoded_data>'."),
-  aiHint: z.string().describe("A 2-word hint for the AI to generate an avatar. e.g. 'man smiling', 'woman glasses'"),
 });
 
 const FindSkillMatchesOutputSchema = z.object({
@@ -76,9 +73,7 @@ A good match is someone who desires skills the user offers, AND offers skills th
 You will be provided with a list of all users via a tool. You must call this tool to get the data.
 From the list of all users, filter out the current user.
 Then, identify up to 6 of the best matches. A better match is one where there are more overlapping skills between what one user offers and another desires.
-For each final match, you MUST generate a unique avatar image based on their name and a simple, creative aiHint.
-Do NOT use the same aiHint for multiple users. Example aiHints: "man smiling", "woman with glasses", "person with curly hair", "artist with beret".
-Return a list of these matched users, including their generated avatar.`,
+Return a list of these matched users.`,
     tools: [getAllUsersTool]
   },
   async (input) => {
@@ -112,7 +107,7 @@ Return a list of these matched users, including their generated avatar.`,
     const finalResponse = await ai.generate({
          prompt: [
             {
-                text: `Here is the list of all users. Now, fulfill the original request to find the best matches for ${input.currentUserName} and generate their avatars.`,
+                text: `Here is the list of all users. Now, fulfill the original request to find the best matches for ${input.currentUserName}.`,
             },
             {
                 data: { allUsers }
@@ -121,38 +116,6 @@ Return a list of these matched users, including their generated avatar.`,
         output: { schema: FindSkillMatchesOutputSchema }
     });
 
-    const matches = finalResponse.output?.matches || [];
-    if (matches.length === 0) {
-        return { matches: [] };
-    }
-
-    // Generate avatars for the matched users in parallel
-    const matchesWithAvatars = await Promise.all(
-        matches.map(async (user) => {
-            try {
-                const { media } = await ai.generate({
-                    model: 'googleai/gemini-2.0-flash-preview-image-generation',
-                    prompt: `A profile picture of a person named ${user.name}. ${user.aiHint || 'person smiling'}.`,
-                    config: {
-                        responseModalities: ['IMAGE'],
-                    },
-                });
-
-                return {
-                    ...user,
-                    avatar: media.url,
-                };
-            } catch (e) {
-                console.error(`Failed to generate avatar for ${user.name}`, e);
-                // Return user without avatar if generation fails
-                return {
-                    ...user,
-                    avatar: `https://placehold.co/128x128.png`, // Fallback
-                };
-            }
-        })
-    );
-    
-    return { matches: matchesWithAvatars };
+    return finalResponse.output || { matches: [] };
   }
 );

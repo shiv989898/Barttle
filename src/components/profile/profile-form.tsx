@@ -24,7 +24,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 import { handleGenerateBio } from "@/app/actions";
@@ -35,7 +35,6 @@ const profileFormSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
   }),
-  profilePicture: z.string().optional(),
   shortBio: z.string().max(300, {
     message: "Bio must not be longer than 300 characters.",
   }).optional(),
@@ -57,7 +56,6 @@ export function ProfileForm() {
       shortBio: "",
       skillsOffered: [],
       skillsDesired: [],
-      profilePicture: "",
     },
     mode: "onChange",
   });
@@ -84,7 +82,6 @@ export function ProfileForm() {
         shortBio: formData.shortBio,
         skillsOffered: formData.skillsOffered || [],
         skillsDesired: formData.skillsDesired || [],
-        profilePicture: formData.profilePicture,
     });
     if (result.success && result.bio) {
         form.setValue("shortBio", result.bio, { shouldValidate: true, shouldDirty: true });
@@ -139,7 +136,6 @@ export function ProfileForm() {
                 <Avatar 
                     className="h-24 w-24 border-2"
                 >
-                  <AvatarImage src={profile?.profilePicture} alt="Profile picture" className="object-cover" />
                   <AvatarFallback className="bg-secondary">
                     <User className="h-10 w-10 text-muted-foreground" />
                   </AvatarFallback>

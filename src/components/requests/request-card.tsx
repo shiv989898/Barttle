@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import type { SwapRequest } from "@/lib/types";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,7 +46,6 @@ export function RequestCard({ request, type }: RequestCardProps) {
       <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
             <Avatar className="h-12 w-12">
-                <AvatarImage src={profileToShow.profilePicture} alt={profileToShow.name} />
                 <AvatarFallback>
                     <User />
                 </AvatarFallback>

@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -13,11 +14,6 @@ import {z} from 'genkit';
 
 const GenerateUserBioInputSchema = z.object({
   name: z.string().describe('The user\'s name.'),
-  profilePicture: z
-    .string()
-    .describe(
-      "A URL or data URI representing the user\'s profile picture. If it's a data URI, it must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ).optional(),
   shortBio: z.string().describe('The user\'s existing short bio.').optional(),
   skillsOffered: z.array(z.string()).describe('A list of skills the user offers.'),
   skillsDesired: z.array(z.string()).describe('A list of skills the user desires.'),
@@ -42,9 +38,6 @@ const prompt = ai.definePrompt({
   Given the following information about a user, write a short bio that is engaging and highlights their skills and interests. The bio should be no more than 100 words.
 
   Name: {{{name}}}
-  {{#if profilePicture}}
-  Profile Picture: {{media url=profilePicture}}
-  {{/if}}
   {{#if shortBio}}
   Existing Bio: {{{shortBio}}}
   {{/if}}

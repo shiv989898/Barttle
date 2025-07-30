@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ArrowRightLeft, Heart, Loader2 } from "lucide-react";
+import { ArrowRightLeft, Heart, Loader2, User as UserIcon } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -106,7 +106,6 @@ export function SkillMatches() {
             shortBio: user.bio,
             skillsOffered: user.skillsOffered,
             skillsDesired: user.skillsDesired,
-            profilePicture: user.profilePicture || ''
         };
         setSelectedTargetUser(targetUserProfile);
         setIsDialogOpen(true);
@@ -138,8 +137,9 @@ export function SkillMatches() {
                             <div key={user.uid} className="flex flex-col space-y-4 p-4 rounded-lg border bg-card hover:shadow-lg transition-shadow">
                                 <div className="flex items-center space-x-4">
                                     <Avatar className="h-12 w-12 border">
-                                        <AvatarImage src={user.avatar} alt={user.name} data-ai-hint={user.aiHint} />
-                                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                        <AvatarFallback>
+                                            <UserIcon className="h-6 w-6 text-muted-foreground" />
+                                        </AvatarFallback>
                                     </Avatar>
                                     <div>
                                         <h3 className="font-semibold text-primary">{user.name}</h3>

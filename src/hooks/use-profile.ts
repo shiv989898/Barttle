@@ -8,9 +8,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 // A default profile to give new users a starting point and showcase features.
-const defaultProfile: Omit<Profile, 'uid'> = {
-  name: "Alex Doe",
-  profilePicture: "",
+const defaultProfile: Omit<Profile, 'uid' | 'name'> = {
   shortBio: "Creative developer with a passion for building beautiful and functional web applications. I'm skilled in React and looking to trade my expertise for some help with illustration and UI design.",
   skillsOffered: ["React", "Next.js", "TypeScript"],
   skillsDesired: ["Illustration", "UI Design", "Figma"],
@@ -37,9 +35,8 @@ export function useProfile() {
         // If no profile exists, create one with default values
         const newProfile: Profile = {
           uid: user.uid,
-          name: user.displayName || defaultProfile.name,
+          name: user.displayName || 'New User',
           ...defaultProfile,
-          profilePicture: user.photoURL || defaultProfile.profilePicture,
         };
         await setDoc(profileDocRef, newProfile);
         setProfile(newProfile);
